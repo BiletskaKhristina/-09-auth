@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 
 import { getQueryClient } from "@/lib/queryClient";
-import { fetchNotes } from "@/lib/api";
+import { fetchNotes } from "@/lib/api/clientApi";
 import NotesClient from "./Notes.client";
 
 interface Props {

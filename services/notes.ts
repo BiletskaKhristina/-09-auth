@@ -4,7 +4,7 @@ import {
   deleteNote,
   type FetchNotesResponse,
   type CreateNoteDTO,
-} from '@/lib/api';
+} from "@/lib/api/clientApi";
 
 export type NotesResponse = FetchNotesResponse;
 
