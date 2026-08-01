@@ -4,15 +4,36 @@ import { api } from "./api";
 import type { Note } from "@/types/note";
 import type { User } from "@/types/user";
 
-
 // =====================
-// NOTES
+// NOTES (SERVER)
 // =====================
 
-export const fetchNotes = async () => {
+export interface FetchNotesResponse {
+  notes: Note[];
+  totalPages: number;
+}
+
+export const fetchNotes = async ({
+  page = 1,
+  search = "",
+  tag,
+}: {
+  page?: number;
+  search?: string;
+  tag?: string;
+} = {}): Promise<FetchNotesResponse> => {
   const cookieStore = await cookies();
 
-  const { data } = await api.get<Note[]>("/notes", {
+  const params: Record<string, string | number> = {
+    page,
+    perPage: 12,
+  };
+
+  if (search) params.search = search;
+  if (tag) params.tag = tag;
+
+  const { data } = await api.get<FetchNotesResponse>("/notes", {
+    params,
     headers: {
       Cookie: cookieStore.toString(),
     },
@@ -20,7 +41,6 @@ export const fetchNotes = async () => {
 
   return data;
 };
-
 
 export const fetchNoteById = async (id: string) => {
   const cookieStore = await cookies();
@@ -34,7 +54,6 @@ export const fetchNoteById = async (id: string) => {
   return data;
 };
 
-
 // =====================
 // AUTH
 // =====================
@@ -42,15 +61,14 @@ export const fetchNoteById = async (id: string) => {
 export const checkSession = async () => {
   const cookieStore = await cookies();
 
-  const { data } = await api.get("/auth/session", {
+  const response = await api.get("/auth/session", {
     headers: {
       Cookie: cookieStore.toString(),
     },
   });
 
-  return data;
+  return response.data;
 };
-
 
 // =====================
 // USER

@@ -1,120 +1,68 @@
-import { api } from "@/lib/api/api";
-import type { Note } from "@/types/note";
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { logout } from "@/lib/api/api";
+import { useEffect, useState } from "react";
 import type { User } from "@/types/user";
+import { getMe } from "@/lib/api/api";
 
+export default function AuthNavigation() {
+  const router = useRouter();
 
-// =====================
-// NOTES
-// =====================
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export interface FetchNotesResponse {
-  notes: Note[];
-  totalPages: number;
-}
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const data = await getMe();
+        setUser(data);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-export type CreateNoteDTO = {
-  title: string;
-  content: string;
-  tag: Note["tag"];
-};
+    fetchUser();
+  }, []);
 
-interface FetchNotesParams {
-  search?: string;
-  page?: number;
-  tag?: string;
-}
-
-
-export const fetchNotes = async ({
-  search = "",
-  page = 1,
-  tag,
-}: FetchNotesParams = {}) => {
-  const params: Record<string, string | number> = {
-    page,
-    perPage: 12,
+  // 🚪 logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      router.push("/sign-in");
+      router.refresh(); 
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
   };
 
-  if (search) {
-    params.search = search;
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
-  if (tag && tag !== "all") {
-    params.tag = tag;
-  }
-
-  const { data } = await api.get<FetchNotesResponse>("/notes", {
-    params,
-  });
-
-  return data;
-};
-
-
-export const fetchNoteById = async (id: string) => {
-  const { data } = await api.get<Note>(`/notes/${id}`);
-  return data;
-};
-
-
-export const createNote = async (note: CreateNoteDTO) => {
-  const { data } = await api.post<Note>("/notes", note);
-  return data;
-};
-
-
-export const deleteNote = async (id: string) => {
-  const { data } = await api.delete<Note>(`/notes/${id}`);
-  return data;
-};
-
-
-// =====================
-// AUTH
-// =====================
-
-export const register = async (data: {
-  email: string;
-  password: string;
-}) => {
-  const response = await api.post<User>("/auth/register", data);
-  return response.data;
-};
-
-
-export const login = async (data: {
-  email: string;
-  password: string;
-}) => {
-  const response = await api.post<User>("/auth/login", data);
-  return response.data;
-};
-
-
-export const logout = async () => {
-  await api.post("/auth/logout");
-};
-
-
-export const checkSession = async () => {
-  const response = await api.get<User | null>("/auth/session");
-  return response.data;
-};
-
-
-// =====================
-// USER
-// =====================
-
-export const getMe = async () => {
-  const response = await api.get<User>("/users/me");
-  return response.data;
-};
-
-
-export const updateMe = async (data: {
-  username: string;
-}) => {
-  const response = await api.patch<User>("/users/me", data);
-  return response.data;
-};
+  return (
+    <nav>
+      {user ? (
+        <>
+          {}
+          <Link href="/profile">Profile</Link>
+          {" | "}
+          <Link href="/notes">Notes</Link>
+          {" | "}
+          <button onClick={handleLogout}>Logout</button>
+        </>
+      ) : (
+        <>
+          {}
+          <Link href="/sign-in">Sign In</Link>
+          {" | "}
+          <Link href="/sign-up">Sign Up</Link>
+        </>
+      )}
+    </nav>
+  );
+}
