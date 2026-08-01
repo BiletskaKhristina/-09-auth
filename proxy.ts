@@ -19,7 +19,6 @@ const publicRoutes = [
 
 
 export async function proxy(request: NextRequest) {
-
   const { pathname } = request.nextUrl;
 
 
@@ -36,101 +35,112 @@ export async function proxy(request: NextRequest) {
   const cookieStore = await cookies();
 
 
-  const accessToken =
-    cookieStore.get("accessToken")?.value;
-
-
-  const refreshToken =
-    cookieStore.get("refreshToken")?.value;
-
+  const accessToken = cookieStore.get("accessToken")?.value;
+  const refreshToken = cookieStore.get("refreshToken")?.value;
 
 
   let isAuthenticated = Boolean(accessToken);
 
 
-
-  const res = NextResponse.next();
+  const response = NextResponse.next();
 
 
 
   if (!accessToken && refreshToken) {
-
     try {
-
-      const response = await checkSession();
-
-
-      isAuthenticated = true;
+      const sessionResponse = await checkSession();
 
 
-
-      const setCookie =
-        response.headers["set-cookie"];
-
+      const setCookie = sessionResponse.headers["set-cookie"];
 
 
       if (setCookie) {
-
         const cookiesArray = Array.isArray(setCookie)
           ? setCookie
           : [setCookie];
 
 
-
-        cookiesArray.forEach((cookie) => {
-
-          const parsed = parseSetCookie(cookie);
+        let hasNewTokens = false;
 
 
-          if (parsed.value) {
+        cookiesArray.forEach((cookieString) => {
+          const parsed = parseSetCookie(cookieString);
 
-            res.cookies.set(
-              parsed.name,
-              parsed.value,
-              {
-                path: "/",
-              }
-            );
 
+          if (parsed.name && parsed.value) {
+
+            response.cookies.set({
+              name: parsed.name,
+              value: parsed.value,
+
+              ...(parsed.expires && {
+                expires: parsed.expires,
+              }),
+
+              ...(parsed.maxAge && {
+                maxAge: parsed.maxAge,
+              }),
+
+              ...(parsed.domain && {
+                domain: parsed.domain,
+              }),
+
+              ...(parsed.path && {
+                path: parsed.path,
+              }),
+
+              ...(parsed.httpOnly && {
+                httpOnly: parsed.httpOnly,
+              }),
+
+              ...(parsed.secure && {
+                secure: parsed.secure,
+              }),
+
+              ...(parsed.sameSite && {
+                sameSite: parsed.sameSite,
+              }),
+            });
+
+
+            if (
+              parsed.name === "accessToken" ||
+              parsed.name === "refreshToken"
+            ) {
+              hasNewTokens = true;
+            }
           }
-
         });
 
+
+        isAuthenticated = hasNewTokens;
       }
 
 
     } catch {
-
       isAuthenticated = false;
-
     }
-
   }
 
 
 
   if (isPrivateRoute && !isAuthenticated) {
-
     return NextResponse.redirect(
       new URL("/sign-in", request.url)
     );
-
   }
 
 
 
   if (isPublicRoute && isAuthenticated) {
-
     return NextResponse.redirect(
       new URL("/", request.url)
     );
-
   }
 
 
 
-  return res;
-
+  return response;
 }
 
 
