@@ -59,11 +59,16 @@ export const fetchNoteById = async (id: string) => {
 // =====================
 
 export const checkSession = async () => {
- const response = await api.get("/auth/session");
+  const cookieStore = await cookies();
 
- return response;
+  const response = await api.get("/auth/session", {
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
+  });
+
+  return response;
 };
-
 
 // =====================
 // USER

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { parseSetCookie } from "cookie";
 
 import { checkSession } from "@/lib/api/serverApi";
 
@@ -18,6 +19,7 @@ const publicRoutes = [
 
 
 export async function proxy(request: NextRequest) {
+
   const { pathname } = request.nextUrl;
 
 
@@ -34,15 +36,25 @@ export async function proxy(request: NextRequest) {
   const cookieStore = await cookies();
 
 
-  const accessToken = cookieStore.get("accessToken")?.value;
-  const refreshToken = cookieStore.get("refreshToken")?.value;
+  const accessToken =
+    cookieStore.get("accessToken")?.value;
+
+
+  const refreshToken =
+    cookieStore.get("refreshToken")?.value;
+
 
 
   let isAuthenticated = Boolean(accessToken);
 
 
 
+  const res = NextResponse.next();
+
+
+
   if (!accessToken && refreshToken) {
+
     try {
 
       const response = await checkSession();
@@ -51,10 +63,10 @@ export async function proxy(request: NextRequest) {
       isAuthenticated = true;
 
 
-      const res = NextResponse.next();
 
+      const setCookie =
+        response.headers["set-cookie"];
 
-      const setCookie = response.headers["set-cookie"];
 
 
       if (setCookie) {
@@ -64,31 +76,35 @@ export async function proxy(request: NextRequest) {
           : [setCookie];
 
 
+
         cookiesArray.forEach((cookie) => {
 
-          const [cookieNameValue] = cookie.split(";");
-
-          const [name, value] =
-            cookieNameValue.split("=");
+          const parsed = parseSetCookie(cookie);
 
 
-          if (name && value) {
-            cookieStore.set(
-              name.trim(),
-              value.trim()
+          if (parsed.value) {
+
+            res.cookies.set(
+              parsed.name,
+              parsed.value,
+              {
+                path: "/",
+              }
             );
+
           }
 
         });
+
       }
 
 
-      return res;
-
-
     } catch {
+
       isAuthenticated = false;
+
     }
+
   }
 
 
@@ -113,7 +129,8 @@ export async function proxy(request: NextRequest) {
 
 
 
-  return NextResponse.next();
+  return res;
+
 }
 
 
