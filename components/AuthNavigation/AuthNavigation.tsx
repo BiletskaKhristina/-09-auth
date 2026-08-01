@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { logout } from "@/lib/api/api";
 import { useEffect, useState } from "react";
+
+import { logout, getMe } from "@/lib/api/clientApi";
 import type { User } from "@/types/user";
-import { getMe } from "@/lib/api/api";
+
 
 export default function AuthNavigation() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -25,44 +27,79 @@ export default function AuthNavigation() {
       }
     };
 
+
     fetchUser();
+
   }, []);
 
-  // 🚪 logout
+
+
   const handleLogout = async () => {
     try {
       await logout();
+
       setUser(null);
+
       router.push("/sign-in");
-      router.refresh(); 
+      router.refresh();
+
     } catch (error) {
       console.error("Logout failed", error);
     }
   };
 
+
+
   if (loading) {
-    return <div>Loading...</div>;
+    return null;
   }
 
+
+
   return (
-    <nav>
+    <>
       {user ? (
         <>
-          {}
-          <Link href="/profile">Profile</Link>
-          {" | "}
-          <Link href="/notes">Notes</Link>
-          {" | "}
-          <button onClick={handleLogout}>Logout</button>
+          <li>
+            {user.email}
+          </li>
+
+          <li>
+            <Link href="/profile">
+              Profile
+            </Link>
+          </li>
+
+          <li>
+            <Link href="/notes">
+              Notes
+            </Link>
+          </li>
+
+          <li>
+            <button
+              type="button"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </li>
         </>
       ) : (
         <>
-          {}
-          <Link href="/sign-in">Sign In</Link>
-          {" | "}
-          <Link href="/sign-up">Sign Up</Link>
+          <li>
+            <Link href="/sign-in">
+              Sign In
+            </Link>
+          </li>
+
+          <li>
+            <Link href="/sign-up">
+              Sign Up
+            </Link>
+          </li>
         </>
       )}
-    </nav>
+    </>
   );
 }
